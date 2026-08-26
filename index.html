@@ -1,0 +1,1743 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0A0704">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CIEL">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  img,svg,video,canvas{display:block;max-width:100%}
+  button,input,select,textarea{font:inherit;color:inherit}
+</style>
+<title>Núcleo CIEL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Barlow:wght@400;500;600&family=Share+Tech+Mono&display=swap">
+
+</head>
+<body>
+<style>
+  :root{
+    --ground:#0A0704;
+    --ground-2:#120C05;
+    --panel:#181005;
+    --line:#4A3410;
+    --line-soft:#2E2009;
+    --gold:#FFD24A;
+    --gold-hi:#FFF1BC;
+    --gold-deep:#B8811C;
+    --ember:#FF9E2C;
+    --sky:#7FD4E8;
+    --text:#F3E4C4;
+    --muted:#A08A63;
+    --danger:#FF7A5C;
+    --ok:#8FE0A0;
+    --display:"Cinzel",'Times New Roman',serif;
+    --body:"Barlow",'Segoe UI',system-ui,sans-serif;
+    --mono:"Share Tech Mono",ui-monospace,'Courier New',monospace;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;background:var(--ground);color:var(--text);
+    font-family:var(--body);font-size:15px;line-height:1.55;
+    -webkit-font-smoothing:antialiased;min-height:100vh;
+    background-image:
+      radial-gradient(1200px 800px at 26% 20%, rgba(255,158,44,.14), transparent 62%),
+      radial-gradient(800px 600px at 86% 88%, rgba(127,212,232,.05), transparent 60%),
+      linear-gradient(180deg,#0A0704 0%,#0D0906 55%,#0A0704 100%);
+    background-attachment:fixed;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:
+      linear-gradient(rgba(255,210,74,.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,210,74,.035) 1px, transparent 1px);
+    background-size:56px 56px;
+    mask-image:radial-gradient(ellipse at 50% 38%, #000 28%, transparent 76%);
+    -webkit-mask-image:radial-gradient(ellipse at 50% 38%, #000 28%, transparent 76%);
+  }
+
+  .wrap{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:28px 22px 64px}
+
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    padding-bottom:14px;margin-bottom:26px;border-bottom:1px solid var(--line-soft);
+  }
+  .brandline{display:flex;align-items:center;gap:12px;min-width:0}
+  .sigil{width:11px;height:11px;background:var(--gold);transform:rotate(45deg);
+    box-shadow:0 0 14px rgba(255,210,74,.9);flex:none}
+  .brandline b{font-family:var(--display);font-weight:700;letter-spacing:.30em;
+    font-size:13px;text-transform:uppercase;color:var(--text)}
+  .brandline span{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.08em;white-space:nowrap}
+  .clock{font-family:var(--mono);font-size:13px;color:var(--gold);letter-spacing:.12em;font-variant-numeric:tabular-nums}
+
+  .stage{display:grid;grid-template-columns:minmax(300px,480px) minmax(0,1fr);gap:38px;align-items:start}
+  @media (max-width:900px){ .stage{grid-template-columns:1fr;gap:26px} }
+
+  .core-col{display:flex;flex-direction:column;align-items:center;gap:14px}
+  .hud{position:relative;width:100%;max-width:480px;aspect-ratio:1}
+  .hud canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+  .subs{
+    position:absolute;left:2%;right:2%;bottom:5%;text-align:center;pointer-events:none;
+    font-family:var(--body);font-weight:600;
+    font-size:clamp(13px,2.5vw,17px);line-height:1.35;color:#FFFFFF;
+    text-shadow:
+      0 0 2px #000, 0 0 2px #000, 1px 1px 0 #000, -1px 1px 0 #000,
+      1px -1px 0 #000, -1px -1px 0 #000, 0 0 14px rgba(0,0,0,.9);
+    opacity:0;transition:opacity .22s ease;
+  }
+  .subs.on{opacity:1}
+  .subs em{font-style:normal;color:var(--gold-hi)}
+  .subs.user em{color:var(--sky)}
+  .subs.user span{color:#DDF4FA;font-style:italic}
+
+  button.mic{color:var(--sky);border-color:#2F6E7E;background:rgba(20,58,68,.42)}
+  button.mic:hover:not(:disabled){background:rgba(127,212,232,.16);color:#EAFCFF;
+    box-shadow:0 0 20px rgba(127,212,232,.28)}
+  button.mic.on{color:#04202A;background:var(--sky);border-color:var(--sky);
+    animation:micPulse 1.5s ease-in-out infinite}
+  @keyframes micPulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(127,212,232,.55)}
+    50%    {box-shadow:0 0 0 12px rgba(127,212,232,0)}
+  }
+
+  .switch{display:flex;align-items:flex-start;gap:12px;margin-top:16px;cursor:pointer;user-select:none}
+  .switch input{position:absolute;opacity:0;width:0;height:0}
+  .switch .track{flex:none;width:44px;height:24px;border-radius:12px;margin-top:2px;
+    background:#241806;border:1px solid var(--line);position:relative;
+    transition:background .18s ease,border-color .18s ease}
+  .switch .knob{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;
+    background:var(--muted);transition:transform .18s ease,background .18s ease}
+  .switch input:checked + .track{background:rgba(127,212,232,.22);border-color:var(--sky)}
+  .switch input:checked + .track .knob{transform:translateX(20px);background:var(--sky)}
+  .switch input:focus-visible + .track{outline:2px solid var(--sky);outline-offset:2px}
+  .switch .lbl b{display:block;font-size:13.5px;font-weight:600;color:var(--text)}
+  .switch .lbl em{display:block;font-style:normal;font-family:var(--mono);font-size:11px;
+    color:var(--muted);margin-top:2px}
+  .switch .lbl strong{color:var(--sky)}
+
+  .diag{margin-top:16px;border:1px solid var(--line-soft);background:#0C0803;padding:12px 14px}
+  .diagrow{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+    padding:5px 0;border-bottom:1px dashed rgba(255,210,74,.10)}
+  .diagrow:last-of-type{border-bottom:0}
+  .diagrow span{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--muted);flex:none}
+  .diagrow b{font-size:13px;font-weight:600;color:var(--text);text-align:right;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .diagrow b.ok{color:var(--ok)}
+  .diagrow b.bad{color:var(--danger)}
+  .diagrow b.warn{color:var(--ember)}
+
+  .cmds{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px}
+  .cmds li{background:#0C0803;border-left:2px solid var(--gold-deep);padding:8px 12px}
+  .cmds li b{display:block;font-weight:600;font-size:13.5px;color:var(--text)}
+  .cmds li span{font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+  .mark{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;margin-top:2px}
+  .mark .word{
+    font-family:var(--display);font-weight:700;
+    font-size:clamp(22px,4.4vw,32px);letter-spacing:.40em;
+    color:#FFF6DC;text-indent:.40em;
+    text-shadow:0 0 18px rgba(255,210,74,.85),0 0 46px rgba(255,158,44,.45);
+  }
+  .mark .sub{font-family:var(--mono);font-size:11px;letter-spacing:.28em;
+    text-transform:uppercase;color:var(--gold-deep)}
+  .mark .sub.live{color:var(--gold)}
+  .powerhint{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--muted);text-align:center}
+
+  .console{display:flex;flex-direction:column;gap:20px;min-width:0}
+  .card{
+    background:linear-gradient(180deg,var(--panel) 0%,var(--ground-2) 100%);
+    border:1px solid var(--line-soft);position:relative;padding:20px 20px 22px;
+  }
+  .card::before,.card::after{
+    content:"";position:absolute;width:14px;height:14px;pointer-events:none;
+    border:1px solid var(--gold);opacity:.5;
+  }
+  .card::before{top:-1px;left:-1px;border-right:0;border-bottom:0}
+  .card::after{bottom:-1px;right:-1px;border-left:0;border-top:0}
+  .card h2{
+    margin:0 0 14px;font-family:var(--display);font-weight:600;font-size:12px;
+    letter-spacing:.24em;text-transform:uppercase;color:var(--gold);
+    display:flex;align-items:center;gap:10px;
+  }
+  .card h2::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
+
+  .btnrow{display:flex;flex-wrap:wrap;gap:10px}
+  button{
+    font-family:var(--display);font-weight:600;font-size:12px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--gold);background:rgba(74,52,16,.40);
+    border:1px solid var(--gold-deep);padding:11px 16px;cursor:pointer;
+    transition:background .16s ease,color .16s ease,box-shadow .16s ease,transform .06s ease;
+  }
+  button:hover:not(:disabled){background:rgba(255,210,74,.16);color:#FFF6DC;box-shadow:0 0 20px rgba(255,210,74,.26)}
+  button:active:not(:disabled){transform:translateY(1px)}
+  button:focus-visible{outline:2px solid var(--sky);outline-offset:2px}
+  button:disabled{opacity:.32;cursor:not-allowed}
+  button.primary{background:rgba(255,210,74,.16);border-color:var(--gold);color:#FFF6DC}
+
+  label.fld{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+  select,textarea{
+    width:100%;background:#0C0803;color:var(--text);border:1px solid var(--line-soft);
+    font-family:var(--body);font-size:14px;padding:10px 12px;
+  }
+  select:focus,textarea:focus{outline:none;border-color:var(--gold-deep);box-shadow:0 0 0 1px rgba(255,210,74,.25)}
+  textarea{resize:vertical;min-height:96px;line-height:1.5}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media (max-width:560px){ .grid2{grid-template-columns:1fr} }
+  input[type=range]{width:100%;accent-color:#FFD24A;background:transparent}
+  .rangeval{font-family:var(--mono);font-size:12px;color:var(--gold);float:right}
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+  @media (max-width:560px){ .stats{grid-template-columns:repeat(2,1fr)} }
+  .stat{border:1px solid var(--line-soft);background:#0C0803;padding:12px 12px 11px;position:relative}
+  .stat i{position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--gold);font-style:normal}
+  .stat.warn i{background:var(--danger)}
+  .stat.good i{background:var(--ok)}
+  .stat.amb i{background:var(--ember)}
+  .stat b{display:block;font-family:var(--display);font-weight:700;font-size:26px;line-height:1.1;
+    color:var(--text);font-variant-numeric:tabular-nums}
+  .stat span{font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted)}
+
+  .items{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px;
+    max-height:340px;overflow-y:auto;overflow-x:hidden}
+  .items li{background:#0C0803;border-left:2px solid var(--line-soft);padding:9px 12px;
+    display:flex;gap:12px;align-items:baseline}
+  .items li.k-human{border-left-color:var(--danger);background:rgba(255,122,92,.06)}
+  .items li.k-close{border-left-color:var(--ember);background:rgba(255,158,44,.05)}
+  .items li.k-invite{border-left-color:var(--ok)}
+  .items li.k-add{border-left-color:var(--gold-deep)}
+  .items li.k-noise{opacity:.45}
+  .items .tag{font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;
+    color:var(--muted);flex:none;width:82px;padding-top:2px}
+  .items .txt{min-width:0}
+  .items .txt b{display:block;font-weight:500;font-size:13.5px;color:var(--text);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .items .txt span{font-family:var(--mono);font-size:11px;color:var(--muted);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+
+  .notice{border:1px solid var(--line-soft);border-left:2px solid var(--ember);
+    background:rgba(255,158,44,.06);padding:13px 15px;font-size:13.5px;color:#F0DCC0}
+  .notice b{color:var(--ember);font-family:var(--display);font-weight:600;letter-spacing:.05em;
+    display:block;margin-bottom:3px}
+  .notice.err{border-left-color:var(--danger);background:rgba(255,122,92,.07);color:#F8DAD2}
+  .notice.err b{color:var(--danger)}
+  .notice.ok{border-left-color:var(--ok);background:rgba(143,224,160,.06);color:#D6EFDB}
+  .notice.ok b{color:var(--ok)}
+
+  .log{font-family:var(--mono);font-size:12px;line-height:1.75;color:var(--muted);
+    max-height:190px;overflow-y:auto;display:flex;flex-direction:column-reverse;gap:2px}
+  .log div{white-space:pre-wrap;word-break:break-word}
+  .log .t{color:var(--gold-deep)}
+  .log .say{color:var(--text)}
+
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-track{background:#0C0803}
+  ::-webkit-scrollbar-thumb{background:#3A280C}
+  ::-webkit-scrollbar-thumb:hover{background:#5A3F12}
+
+  footer{margin-top:44px;padding-top:16px;border-top:1px solid var(--line-soft);
+    font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:#7A6440;
+    display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;text-transform:uppercase}
+  footer .fps{color:var(--gold-deep)}
+
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.001ms !important;transition-duration:.001ms !important}
+  }
+</style>
+
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brandline">
+      <div class="sigil"></div>
+      <b>Enshrouded</b>
+      <span>&nbsp;/&nbsp;Niagara Falls, ON</span>
+    </div>
+    <div class="clock" id="clock">--:--:--</div>
+  </div>
+
+  <div class="stage">
+
+    <div class="core-col">
+      <div class="hud">
+        <canvas id="core"></canvas>
+        <div class="subs" id="subs"></div>
+      </div>
+      <div class="mark">
+        <div class="word">CIEL</div>
+        <div class="sub" id="state">Núcleo latente</div>
+      </div>
+      <div class="powerhint" id="hint">Aprieta cualquier botón — el primer clic la despierta</div>
+    </div>
+
+    <div class="console">
+
+      <section class="card">
+        <h2>Órdenes y voz</h2>
+        <div>
+          <label class="fld" for="say">
+            🎤 Dale la orden — usa el micrófono de tu teclado aquí
+          </label>
+          <textarea id="say" placeholder="Di o escribe una orden: «lee mi bandeja», «qué cierra hoy»… o pega un texto para que lo lea."></textarea>
+          <div class="btnrow" style="margin-top:10px">
+            <button id="btnRun" class="primary">▸ Ejecutar orden</button>
+            <button id="btnSay">🔊 Solo léelo</button>
+          </div>
+          <div style="margin-top:10px;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;
+                      text-transform:uppercase;color:var(--muted)">
+            Enter ejecuta · Shift + Enter salta de línea
+          </div>
+        </div>
+        <div class="btnrow">
+          <button id="btnMic" class="mic primary">🎙 Hablar con CIEL</button>
+          <button id="btnGreet">Saludar</button>
+          <button id="btnStop">Silencio</button>
+          <button id="btnPower">◈ Despertar núcleo</button>
+        </div>
+
+        <label class="switch" for="contMic">
+          <input type="checkbox" id="contMic">
+          <span class="track"><span class="knob"></span></span>
+          <span class="lbl">
+            <b>Escucha continua</b>
+            <em>El micrófono queda abierto. Di «<strong>CIEL</strong>» y entra en acción.</em>
+          </span>
+        </label>
+
+        <div id="micZone" style="margin-top:12px"></div>
+
+        <div class="diag" id="diag">
+          <div class="diagrow"><span>Permiso del micrófono</span><b id="dPerm">—</b></div>
+          <div class="diagrow"><span>Reconocimiento de voz</span><b id="dRec">—</b></div>
+          <div class="diagrow"><span>Voces instaladas</span><b id="dVoices">—</b></div>
+          <div class="diagrow"><span>Última cosa que oí</span><b id="dHeard">—</b></div>
+          <div class="btnrow" style="margin-top:12px">
+            <button id="btnPerm" class="mic">🔓 Pedir permiso del micrófono</button>
+            <button id="btnTestVoice">🔊 Probar la voz</button>
+          </div>
+        </div>
+
+        <div class="grid2" style="margin-top:18px">
+          <div>
+            <label class="fld" for="voice">Voz</label>
+            <select id="voice"><option>Cargando voces…</option></select>
+          </div>
+          <div>
+            <label class="fld" for="rate">Velocidad <span class="rangeval" id="rateVal">0.95</span></label>
+            <input type="range" id="rate" min="0.6" max="1.4" step="0.05" value="0.95">
+            <label class="fld" for="pitch" style="margin-top:10px">Tono <span class="rangeval" id="pitchVal">0.85</span></label>
+            <input type="range" id="pitch" min="0.5" max="1.5" step="0.05" value="0.85">
+          </div>
+        </div>
+        <div style="margin-top:12px;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+                    text-transform:uppercase;color:var(--muted)">
+          Voz, velocidad y tono se guardan solos en este navegador
+        </div>
+
+
+      </section>
+
+      <section class="card">
+        <h2>Qué entiende CIEL</h2>
+        <p style="margin:0 0 14px;font-size:13.5px;color:var(--muted)">
+          Con la escucha continua encendida, di <strong style="color:var(--sky)">«CIEL»</strong> y espera
+          a que conteste <em>«¿Sí, Sir?»</em> — o dilo todo de una vez:
+          <strong style="color:var(--text)">«CIEL, lee mi bandeja»</strong>.
+          No hace falta que sea exacto: basta con que aparezca la palabra clave.
+        </p>
+        <ul class="cmds">
+          <li><b>«Lee mi bandeja»</b><span>revisa tu Gmail y te lo cuenta en voz alta</span></li>
+          <li><b>«¿Qué cierra hoy?»</b><span>solo las licitaciones que vencen</span></li>
+          <li><b>«¿Quién espera respuesta?»</b><span>las personas reales, sin plataformas</span></li>
+          <li><b>«¿Hay invitaciones nuevas?»</b><span>lo nuevo que entró a licitar</span></li>
+          <li><b>«¿Qué hora es?»</b><span>hora y fecha</span></li>
+          <li><b>«Repite»</b><span>vuelve a decir lo último</span></li>
+          <li><b>«Silencio»</b><span>se calla</span></li>
+          <li><b>«Ayuda»</b><span>te lee esta lista</span></li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>Bandeja en vivo</h2>
+        <div id="mcpZone">
+          <div class="notice"><b>Enlazando</b>Comprobando el vínculo con tu Gmail…</div>
+        </div>
+        <div id="inboxBody" hidden>
+          <div class="stats">
+            <div class="stat warn"><i></i><b id="cHuman">0</b><span>Responder</span></div>
+            <div class="stat amb"><i></i><b id="cClose">0</b><span>Cierres</span></div>
+            <div class="stat good"><i></i><b id="cInvite">0</b><span>Invitaciones</span></div>
+            <div class="stat"><i></i><b id="cAdd">0</b><span>Addenda</span></div>
+          </div>
+          <ul class="items" id="items"></ul>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Registro</h2>
+        <div class="log" id="log"></div>
+      </section>
+
+    </div>
+  </div>
+
+  <footer>
+    <span>Núcleo CIEL · v0.4</span>
+    <span class="fps" id="fps">—</span>
+    <span>Voz local del navegador</span>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============================ REGISTRO ============================ */
+  var logEl = document.getElementById('log');
+  function log(msg, kind){
+    var d = document.createElement('div');
+    var t = new Date().toLocaleTimeString('es-CA',{hour12:false});
+    d.innerHTML = '<span class="t">[' + t + ']</span> <span class="' + (kind==='say'?'say':'') + '"></span>';
+    d.lastChild.textContent = msg;
+    logEl.prepend(d);
+    while(logEl.children.length > 120) logEl.removeChild(logEl.lastChild);
+  }
+
+  // Cualquier fallo aparece en el Registro, a la vista. Nada de errores mudos.
+  window.addEventListener('error', function(e){
+    log('⚠ ERROR: ' + ((e && e.message) || 'desconocido') +
+        (e && e.lineno ? ' — línea ' + e.lineno : ''));
+  });
+  window.addEventListener('unhandledrejection', function(e){
+    var r = e && e.reason;
+    log('⚠ ERROR: ' + ((r && (r.message || r.code)) || String(r) || 'promesa rechazada'));
+  });
+
+  /* ============================ RELOJ ============================ */
+  var clockEl = document.getElementById('clock');
+  function tickClock(){
+    var n = new Date();
+    clockEl.textContent = n.toLocaleTimeString('es-CA',{hour12:false}) + '  ' +
+      n.toLocaleDateString('es-CA',{weekday:'short',day:'2-digit',month:'short'}).toUpperCase();
+  }
+  tickClock(); setInterval(tickClock, 1000);
+
+  /* ================================================================
+     EL NÚCLEO
+     Motor: cada anillo se dibuja UNA vez en su propio lienzo oculto
+     y luego solo se rota y se estampa. Nada de sombras ni degradados
+     dentro del bucle — eso es lo que ahogaba los cuadros por segundo.
+     ================================================================ */
+  var cv  = document.getElementById('core');
+  var ctx = cv.getContext('2d', { alpha: true });
+  var fpsEl = document.getElementById('fps');
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var TAU = Math.PI*2;
+  var amp = 0, ampS = 0, awake = false;
+  var lastTs = 0, animOn = true;
+
+  var dpr = 1, W = 0, H = 0, R = 0, CX = 0, CY = 0, LS = 0;
+  var LAY = {};                       // lienzos pre-dibujados
+  var GLYPHS  = 'ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ';
+  var GLYPHS2 = '◇◆○●△▲□■✦✧⬡⬢';
+
+  var SPIKES = 30, MOTES = 26;
+  var spikeSeed = [], motes = [];
+  for(var i=0;i<SPIKES;i++) spikeSeed.push(Math.random()*TAU);
+  for(var j=0;j<MOTES;j++){
+    motes.push({ a:Math.random()*TAU, r:0.20+Math.random()*0.68,
+                 s:0.05+Math.random()*0.15, sz:0.5+Math.random()*1.4,
+                 ph:Math.random()*TAU });
+  }
+
+  /* ---------- utilidades de dibujo (solo en el horneado) ---------- */
+  function ringOn(g,r,w,color,alpha,blur,a0,a1){
+    g.save();
+    g.beginPath(); g.arc(0,0,r, a0===undefined?0:a0, a1===undefined?TAU:a1);
+    g.lineWidth=w; g.strokeStyle=color; g.globalAlpha=alpha;
+    if(blur){ g.shadowBlur=blur; g.shadowColor=color; }
+    g.stroke(); g.restore();
+  }
+  function starOn(g,r,n,k,w,color,alpha,blur){
+    g.save(); g.beginPath();
+    var v=0, idx=0;
+    while(v<n){
+      var an = idx*TAU/n;
+      var x = Math.cos(an)*r, y = Math.sin(an)*r;
+      if(v===0) g.moveTo(x,y); else g.lineTo(x,y);
+      idx = (idx+k)%n; v++;
+    }
+    g.closePath();
+    g.lineWidth=w; g.strokeStyle=color; g.globalAlpha=alpha;
+    if(blur){ g.shadowBlur=blur; g.shadowColor=color; }
+    g.stroke(); g.restore();
+  }
+  function glyphsOn(g,r,chars,size,color,alpha){
+    g.save();
+    g.fillStyle=color; g.globalAlpha=alpha;
+    g.font='600 '+size.toFixed(1)+'px "Cinzel", serif';
+    g.textAlign='center'; g.textBaseline='middle';
+    g.shadowBlur=10; g.shadowColor=color;
+    var n=chars.length;
+    for(var q=0;q<n;q++){
+      var an = q*TAU/n;
+      g.save();
+      g.translate(Math.cos(an)*r, Math.sin(an)*r);
+      g.rotate(an+Math.PI/2);
+      g.fillText(chars[q],0,0);
+      g.restore();
+    }
+    g.restore();
+  }
+
+  // Cada capa vive en un lienzo del tamaño JUSTO de su contenido:
+  // un anillo pequeño no debe pagar el precio de un lienzo completo.
+  // k = radio de la capa expresado en múltiplos de R.
+  function newLayer(k){
+    var side = Math.max(8, 2*R*k*1.06);
+    var c = document.createElement('canvas');
+    c.width = c.height = Math.max(2, Math.round(side*dpr));
+    var g = c.getContext('2d');
+    g.setTransform(dpr,0,0,dpr,0,0);
+    g.translate(side/2, side/2);
+    return { c:c, g:g, s:side };
+  }
+
+  function bake(){
+    var l;
+
+    /* --- resplandor de fondo --- */
+    l = newLayer(1.46);
+    var gg = l.g.createRadialGradient(0,0,R*0.04,0,0,R*1.44);
+    gg.addColorStop(0,   'rgba(255,252,232,0.95)');
+    gg.addColorStop(0.16,'rgba(255,226,140,0.62)');
+    gg.addColorStop(0.38,'rgba(255,168,52,0.38)');
+    gg.addColorStop(0.68,'rgba(206,132,26,0.17)');
+    gg.addColorStop(1,   'rgba(10,7,4,0)');
+    l.g.fillStyle = gg;
+    l.g.beginPath(); l.g.arc(0,0,R*1.44,0,TAU); l.g.fill();
+    LAY.glow = l;
+
+    /* --- bruma cálida: lo que despega el círculo del negro --- */
+    l = newLayer(1.05);
+    var hz = l.g.createRadialGradient(0,0,R*0.10,0,0,R*1.03);
+    hz.addColorStop(0,   'rgba(255,236,176,0.44)');
+    hz.addColorStop(0.45,'rgba(255,186,72,0.22)');
+    hz.addColorStop(0.80,'rgba(196,124,26,0.10)');
+    hz.addColorStop(1,   'rgba(120,72,12,0)');
+    l.g.fillStyle = hz;
+    l.g.beginPath(); l.g.arc(0,0,R*1.03,0,TAU); l.g.fill();
+    LAY.haze = l;
+
+    /* --- abanicos de rayos --- */
+    function rayFan(k, count, minLen, maxLen, offset){
+      var la = newLayer(k);
+      la.g.globalCompositeOperation = 'lighter';
+      for(var q=0;q<count;q++){
+        var an = offset + q*TAU/count;
+        var len = minLen + (maxLen-minLen)*(0.5 + 0.5*Math.sin(q*2.1));
+        var lg = la.g.createLinearGradient(0,0, Math.cos(an)*len, Math.sin(an)*len);
+        lg.addColorStop(0,   'rgba(255,250,222,0.72)');
+        lg.addColorStop(0.30,'rgba(255,222,132,0.40)');
+        lg.addColorStop(1,   'rgba(255,158,44,0)');
+        la.g.strokeStyle = lg;
+        la.g.lineWidth = R*0.017;
+        la.g.beginPath();
+        la.g.moveTo(Math.cos(an)*R*0.14, Math.sin(an)*R*0.14);
+        la.g.lineTo(Math.cos(an)*len,    Math.sin(an)*len);
+        la.g.stroke();
+      }
+      return la;
+    }
+    LAY.raysA = rayFan(1.12, 22, R*0.62, R*1.10, 0);
+    LAY.raysB = rayFan(0.92, 22, R*0.46, R*0.86, TAU/44);
+
+    /* --- TODO lo que gira en sentido horario, en un solo lienzo --- */
+    l = newLayer(1.02);
+    glyphsOn(l.g, R*0.935, GLYPHS, R*0.052, '#FFEDB4', 1);
+    ringOn(l.g, R*0.995, 1.4, '#F0BE58', 0.85, 8);
+    ringOn(l.g, R*0.875, 1.2, '#E0A83A', 0.70, 6);
+    var bR = R*0.700, bW = R*0.086;
+    var segs = [[0.00,0.22],[0.26,0.46],[0.52,0.72],[0.77,0.96]];
+    for(var s=0;s<segs.length;s++){
+      var s0 = segs[s][0]*TAU, s1 = segs[s][1]*TAU;
+      ringOn(l.g, bR, bW, '#A9761E', 0.72, 0, s0, s1);
+      ringOn(l.g, bR+bW*0.30, bW*0.22, '#FFE38A', 1, 20, s0, s1);
+      ringOn(l.g, bR-bW*0.32, bW*0.14, '#FFFBE8', 0.92, 14, s0, s1);
+    }
+    l.g.save();
+    l.g.strokeStyle='#FFE38A'; l.g.globalAlpha=0.85; l.g.lineWidth=Math.max(1.2,R*0.008);
+    for(var d=0;d<36;d++){
+      var da = d*TAU/36;
+      l.g.beginPath();
+      l.g.moveTo(Math.cos(da)*(bR+bW*0.5), Math.sin(da)*(bR+bW*0.5));
+      l.g.lineTo(Math.cos(da)*(bR+bW*0.5+R*0.026), Math.sin(da)*(bR+bW*0.5+R*0.026));
+      l.g.stroke();
+    }
+    l.g.restore();
+    starOn(l.g, R*0.615, 12, 5, Math.max(1.2,R*0.0062), '#FFE9A0', 0.92, 16);
+    LAY.cw = l;
+
+    /* --- TODO lo que gira en sentido antihorario --- */
+    l = newLayer(0.88);
+    l.g.save();
+    l.g.strokeStyle = '#FFE9A8';
+    l.g.shadowBlur = 8; l.g.shadowColor = '#FFC24A';
+    for(var m=0;m<108;m++){
+      var ma = m/108*TAU, major = (m%9===0);
+      l.g.globalAlpha = major ? 1 : 0.48;
+      l.g.lineWidth   = major ? 2.2 : 1.1;
+      var r0 = R*0.795, r1 = r0 + (major ? R*0.058 : R*0.028);
+      l.g.beginPath();
+      l.g.moveTo(Math.cos(ma)*r0, Math.sin(ma)*r0);
+      l.g.lineTo(Math.cos(ma)*r1, Math.sin(ma)*r1);
+      l.g.stroke();
+    }
+    l.g.restore();
+    starOn(l.g, R*0.470, 3, 1, Math.max(1.4,R*0.0078), '#FFFBE8', 0.88, 18);
+    l.g.rotate(Math.PI);
+    starOn(l.g, R*0.470, 3, 1, Math.max(1.4,R*0.0078), '#FFFBE8', 0.88, 18);
+    l.g.rotate(-Math.PI);
+    ringOn(l.g, R*0.470, 1.2, '#E0A83A', 0.70, 6);
+    glyphsOn(l.g, R*0.335, GLYPHS2, R*0.040, '#FFFBE8', 0.92);
+    l.g.save();
+    l.g.setLineDash([R*0.022, R*0.030]);
+    ringOn(l.g, R*0.265, 1.4, '#FFE38A', 0.90, 10);
+    l.g.restore();
+    LAY.ccw = l;
+
+    /* --- esfera del núcleo --- */
+    l = newLayer(0.32);
+    var cgr = l.g.createRadialGradient(0,0,0,0,0,R*0.30);
+    cgr.addColorStop(0,   'rgba(255,255,255,1)');
+    cgr.addColorStop(0.20,'rgba(255,255,252,1)');
+    cgr.addColorStop(0.38,'rgba(255,243,196,0.96)');
+    cgr.addColorStop(0.58,'rgba(255,206,80,0.78)');
+    cgr.addColorStop(0.80,'rgba(255,162,42,0.34)');
+    cgr.addColorStop(1,   'rgba(255,150,36,0)');
+    l.g.fillStyle = cgr;
+    l.g.beginPath(); l.g.arc(0,0,R*0.30,0,TAU); l.g.fill();
+    LAY.core = l;
+  }
+
+  function stamp(L, rot, alpha, scale){
+    ctx.save();
+    ctx.translate(CX, CY);
+    if(rot) ctx.rotate(rot);
+    ctx.globalAlpha = alpha;
+    var s = L.s * (scale || 1);
+    ctx.drawImage(L.c, -s/2, -s/2, s, s);
+    ctx.restore();
+  }
+
+  var dprCap = 1.5;   // baja sola si el equipo no da abasto
+  function resize(){
+    var r = cv.getBoundingClientRect();
+    if(!r.width || !r.height) return;
+    dpr = Math.min(window.devicePixelRatio || 1, dprCap);
+    W = r.width; H = r.height;
+    cv.width  = Math.max(1, Math.round(W*dpr));
+    cv.height = Math.max(1, Math.round(H*dpr));
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.imageSmoothingQuality = 'low';
+    CX = W/2; CY = H/2;
+    R  = Math.min(W,H)*0.455;
+    LS = Math.min(W,H)*1.02;
+    bake();
+  }
+  var resizeTimer = null;
+  window.addEventListener('resize', function(){
+    if(resizeTimer) clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(resize, 140);
+  });
+  document.addEventListener('visibilitychange', function(){
+    animOn = !document.hidden;
+    if(animOn){ lastTs = 0; requestAnimationFrame(draw); }
+  });
+
+  var fpsAcc = 0, fpsFrames = 0, fpsWindows = 0, qualityDrops = 0;
+
+  function draw(ts){
+    if(!animOn) return;
+    if(!LS){ requestAnimationFrame(draw); return; }
+
+    var t  = ts/1000;
+    var dt = lastTs ? Math.min(0.05,(ts-lastTs)/1000) : 0.016;
+    lastTs = ts;
+
+    // medidor de cuadros + calidad adaptativa:
+    // si el equipo no da abasto, bajamos resolución en vez de arrastrarnos.
+    fpsAcc += dt; fpsFrames++;
+    if(fpsAcc >= 1){
+      var fps = fpsFrames/fpsAcc;
+      fpsEl.textContent = Math.round(fps) + ' FPS';
+      fpsAcc = 0; fpsFrames = 0; fpsWindows++;
+      if(fpsWindows > 1 && fps < 42 && qualityDrops < 2){
+        qualityDrops++;
+        dprCap = (qualityDrops === 1) ? 1 : 0.7;
+        resize();
+        log('Rendimiento bajo (' + Math.round(fps) + ' FPS) — reduzco la resolución del núcleo.');
+      }
+    }
+
+    ampS += (amp - ampS) * Math.min(1, dt*12);
+    var a = ampS;
+    var spin = reduce ? 0 : t;
+    var breathe = Math.sin(t*1.05)*0.5 + 0.5;
+    var dim = awake ? 1 : 0.74;
+
+    ctx.clearRect(0,0,W,H);
+
+    // Todo el círculo SUMA luz en vez de pintar encima del negro.
+    // Eso es lo que lo saca de verse opaco.
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+
+    /* resplandor y bruma cálida */
+    stamp(LAY.glow, 0, (0.70 + a*0.30)*dim, 1 + a*0.05);
+    stamp(LAY.haze, 0, (0.44 + 0.16*breathe + a*0.30)*dim, 1 + a*0.08);
+
+    /* rayos: dos abanicos cruzados que se alternan */
+    var fa = 0.38 + 0.24*breathe + a*0.40;
+    var fb = 0.38 + 0.24*(1-breathe) + a*0.40;
+    stamp(LAY.raysA,  spin*0.030, fa*dim, 1 + a*0.14);
+    stamp(LAY.raysB, -spin*0.024, fb*dim, 1 + a*0.10);
+
+    /* anillos: dos grupos que giran en sentidos opuestos */
+    var rotA = spin*0.042, rotB = -spin*0.070;
+    stamp(LAY.cw,  rotA, (0.94 + a*0.06)*dim, 1);
+    stamp(LAY.ccw, rotB, (0.92 + a*0.08)*dim, 1);
+    /* floración: la misma lámina, un pelo más grande y tenue */
+    stamp(LAY.cw,  rotA, (0.20 + a*0.22)*dim, 1.035);
+    stamp(LAY.ccw, rotB, (0.20 + a*0.22)*dim, 1.045);
+    ctx.restore();
+
+    /* el oído: aro frío tenue = escuchando la palabra clave · brillante = armada */
+    if(earState){
+      var armed = (earState === 2);
+      var lp = 0.5 + 0.5*Math.sin(t*(armed ? 4.4 : 1.5));
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(CX, CY, R*(1.010 + (armed ? 0.020 : 0.007)*lp), 0, TAU);
+      ctx.lineWidth = Math.max(1.3, R*(armed ? 0.013 : 0.006));
+      ctx.strokeStyle = '#7FD4E8';
+      ctx.globalAlpha = armed ? (0.34 + 0.46*lp) : (0.13 + 0.13*lp);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    /* motas */
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = '#FFE79A';
+    for(var p=0;p<MOTES;p++){
+      var mo = motes[p];
+      if(!reduce) mo.a += mo.s*dt*(1 + a*1.6);
+      var mr = R*mo.r;
+      ctx.globalAlpha = (0.18 + 0.52*Math.abs(Math.sin(t*1.1+mo.ph))) * (0.45 + a*0.55) * dim;
+      ctx.beginPath();
+      ctx.arc(CX+Math.cos(mo.a)*mr, CY+Math.sin(mo.a)*mr, mo.sz*(1+a*0.9), 0, TAU);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    /* púas de energía: esto es lo que "se mueve al hablar" */
+    var coreR = R*0.145*(1 + a*0.34 + breathe*0.045);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = '#FFE79A';
+    ctx.lineWidth = Math.max(1, R*0.006);
+    ctx.beginPath();
+    for(var s2=0;s2<SPIKES;s2++){
+      var sa = s2*TAU/SPIKES + spin*0.22;
+      var nz = Math.sin(sa*5 + t*9)*0.45 + Math.sin(sa*11 - t*6)*0.30 + Math.sin(sa*2 + t*3)*0.25;
+      var sl = coreR*(1.15 + (0.30 + a*1.95)*(0.5 + 0.5*nz));
+      ctx.moveTo(CX+Math.cos(sa)*coreR*0.72, CY+Math.sin(sa)*coreR*0.72);
+      ctx.lineTo(CX+Math.cos(sa)*sl,          CY+Math.sin(sa)*sl);
+    }
+    ctx.globalAlpha = (0.36 + a*0.52) * dim;
+    ctx.stroke();
+    ctx.restore();
+
+    /* esfera + su floración */
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    stamp(LAY.core, 0, dim, (coreR/(R*0.30))*1.42);
+    stamp(LAY.core, 0, (0.18 + a*0.26)*dim, (coreR/(R*0.30))*2.5);
+    ctx.restore();
+
+    /* onda al hablar */
+    if(a > 0.03){
+      ctx.save();
+      ctx.beginPath();
+      for(var k=0;k<=96;k++){
+        var an2 = k/96*TAU;
+        var nn = Math.sin(an2*6 + t*10)*0.5 + Math.sin(an2*13 - t*7)*0.3 + Math.sin(an2*3 + t*4)*0.2;
+        var rad = R*0.205 + nn*R*0.048*a;
+        var x = CX+Math.cos(an2)*rad, y = CY+Math.sin(an2)*rad;
+        if(k===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.closePath();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = '#FFF1BC';
+      ctx.globalAlpha = (0.24 + a*0.50)*dim;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    requestAnimationFrame(draw);
+  }
+
+  resize();
+  requestAnimationFrame(draw);
+  setTimeout(resize, 120);
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(resize);
+
+  /* ============================ SUBTÍTULOS ============================ */
+  var subsEl = document.getElementById('subs');
+  var subSegs = [], subHideTimer = null;
+
+  function buildSegments(text){
+    var segs = [], MAXLEN = 78, i = 0, n = text.length;
+    while(i < n){
+      var end = Math.min(n, i + MAXLEN);
+      if(end < n){
+        var slice = text.slice(i, end);
+        var cut = Math.max(slice.lastIndexOf('. '), slice.lastIndexOf(', '),
+                           slice.lastIndexOf('; '), slice.lastIndexOf(': '));
+        if(cut < MAXLEN*0.45) cut = slice.lastIndexOf(' ');
+        if(cut > 0) end = i + cut + 1;
+      }
+      var txt = text.slice(i, end).trim();
+      if(txt) segs.push({ start:i, end:end, text:txt });
+      i = end;
+    }
+    return segs;
+  }
+  function showSub(txt, who){
+    if(subHideTimer){ clearTimeout(subHideTimer); subHideTimer = null; }
+    subsEl.innerHTML = '';
+    var em = document.createElement('em');
+    em.textContent = (who === 'user') ? 'SIR: ' : 'CIEL: ';
+    var sp = document.createElement('span'); sp.textContent = txt;
+    subsEl.appendChild(em); subsEl.appendChild(sp);
+    subsEl.classList.toggle('user', who === 'user');
+    subsEl.classList.add('on');
+  }
+  function hideSub(delay){
+    if(subHideTimer) clearTimeout(subHideTimer);
+    subHideTimer = setTimeout(function(){ subsEl.classList.remove('on'); }, delay||900);
+  }
+
+  /* ============================ LA VOZ ============================ */
+  var synth = window.speechSynthesis;
+  var voices = [], voice = null;
+  var elVoice = document.getElementById('voice');
+  var elRate  = document.getElementById('rate');
+  var elPitch = document.getElementById('pitch');
+  var elState = document.getElementById('state');
+  var elHint  = document.getElementById('hint');
+  var btnPower = document.getElementById('btnPower');
+  var btnGreet = document.getElementById('btnGreet');
+  var btnStop  = document.getElementById('btnStop');
+  var btnSay   = document.getElementById('btnSay');
+  var elSay    = document.getElementById('say');
+
+  /* --- ajustes guardados en este navegador --- */
+  var VKEY = 'ciel.voice.v1';
+  var saved = (function(){
+    try { return JSON.parse(localStorage.getItem(VKEY) || '{}') || {}; }
+    catch(e){ return {}; }
+  })();
+  function saveVoicePrefs(){
+    try{
+      localStorage.setItem(VKEY, JSON.stringify({
+        rate: elRate.value,
+        pitch: elPitch.value,
+        voiceName: voice ? voice.name : (saved.voiceName || '')
+      }));
+      saved.rate = elRate.value; saved.pitch = elPitch.value;
+      if(voice) saved.voiceName = voice.name;
+    } catch(e){}
+  }
+  if(saved.rate){ elRate.value = saved.rate; }
+  if(saved.pitch){ elPitch.value = saved.pitch; }
+  document.getElementById('rateVal').textContent  = elRate.value;
+  document.getElementById('pitchVal').textContent = elPitch.value;
+
+  elRate.addEventListener('input', function(){ document.getElementById('rateVal').textContent = elRate.value; });
+  elPitch.addEventListener('input', function(){ document.getElementById('pitchVal').textContent = elPitch.value; });
+  elRate.addEventListener('change', saveVoicePrefs);
+  elPitch.addEventListener('change', saveVoicePrefs);
+
+  function rankVoice(v){
+    var n=(v.name||'').toLowerCase(), l=(v.lang||'').toLowerCase(), s=0;
+    if(l.indexOf('es')===0) s += 100;
+    if(l.indexOf('es-mx')===0 || l.indexOf('es-us')===0 || l.indexOf('es-419')===0) s += 12;
+    if(l.indexOf('es-es')===0) s += 6;
+    ['jorge','diego','carlos','pablo','miguel','juan','male','hombre','enrique','alvaro','álvaro'].forEach(function(k){
+      if(n.indexOf(k)>=0) s += 25;
+    });
+    if(n.indexOf('google')>=0) s += 14;
+    if(n.indexOf('natural')>=0 || n.indexOf('neural')>=0) s += 20;
+    return s;
+  }
+  function loadVoices(){
+    voices = synth.getVoices() || [];
+    if(!voices.length) return false;
+    var es = voices.filter(function(v){ return (v.lang||'').toLowerCase().indexOf('es')===0; });
+    var list = (es.length ? es : voices).slice().sort(function(a,b){ return rankVoice(b)-rankVoice(a); });
+    elVoice.innerHTML='';
+    list.forEach(function(v){
+      var o=document.createElement('option'); o.value=v.name; o.textContent=v.name+'  ·  '+v.lang;
+      elVoice.appendChild(o);
+    });
+    if(!es.length){
+      var warn=document.createElement('option');
+      warn.disabled=true; warn.textContent='— sin voces en español instaladas —';
+      elVoice.prepend(warn);
+    }
+    var remembered = saved.voiceName
+      ? list.filter(function(v){ return v.name === saved.voiceName; })[0]
+      : null;
+    voice = remembered || list[0];
+    elVoice.value = voice.name;
+    log('Voz lista · '+voices.length+' disponibles · '+
+        (remembered ? 'recuperada de tus ajustes: ' : 'elegida: ')+voice.name);
+    saveVoicePrefs();
+    return true;
+  }
+  elVoice.addEventListener('change', function(){
+    voice = voices.filter(function(v){ return v.name===elVoice.value; })[0] || voice;
+    saveVoicePrefs();
+    log('Voz cambiada a '+(voice?voice.name:'—'));
+  });
+  if(synth){
+    if(!loadVoices()){
+      synth.addEventListener('voiceschanged', function once(){
+        if(loadVoices()) synth.removeEventListener('voiceschanged', once);
+      });
+      setTimeout(loadVoices, 800);
+    }
+  } else {
+    elVoice.innerHTML = '<option>Este navegador no tiene síntesis de voz</option>';
+  }
+
+  var speakingCount = 0, pulse = 0, ampTimer = null, lastSpoken = '';
+  function driveAmp(){
+    pulse *= 0.85;
+    amp = Math.min(1, 0.32 + Math.random()*0.30 + pulse);
+  }
+
+  function speak(text, opts){
+    if(!synth){ log('Sin motor de voz en este navegador.'); return; }
+    if(!text || !text.trim()) return;
+    opts = opts || {};
+    var clean = text.trim().slice(0, 32000);
+    lastSpoken = clean;
+    var u = new SpeechSynthesisUtterance(clean);
+    if(voice){ u.voice=voice; u.lang=voice.lang; } else { u.lang='es-ES'; }
+    u.rate = parseFloat(elRate.value);
+    u.pitch = parseFloat(elPitch.value);
+    u.volume = 1;
+
+    subSegs = buildSegments(clean);
+    var curSeg = -1, fallbackTimer = null, started = false;
+
+    // La respuesta se VE siempre, arranque o no la voz.
+    // Si el navegador no deja sonar, CIEL sigue contestando por escrito.
+    if(subSegs.length){ curSeg = 0; showSub(subSegs[0].text); }
+    if(!opts.quietLog) log('CIEL: ' + clean.slice(0,180) + (clean.length>180?'…':''), 'say');
+
+    var watchdog = setTimeout(function(){
+      if(!started){
+        log('⚠ La voz no arrancó en este navegador — te contesto solo por escrito.');
+        setDiag(dVoices, 'la voz no suena aquí', 'bad');
+        hideSub(8000);
+      }
+    }, 1600);
+
+    u.onstart = function(){
+      started = true;
+      if(watchdog){ clearTimeout(watchdog); watchdog = null; }
+      speakingCount++;
+      elState.textContent='Hablando'; elState.classList.add('live');
+      if(!ampTimer) ampTimer = setInterval(driveAmp, 55);
+      // plan B: si el navegador no reporta límites de palabra (Safari),
+      // avanzamos los subtítulos por tiempo estimado.
+      var sawBoundary = false;
+      u._mark = function(){ sawBoundary = true; };
+      fallbackTimer = setInterval(function(){
+        if(sawBoundary || curSeg < 0 || curSeg >= subSegs.length-1) return;
+        curSeg++; showSub(subSegs[curSeg].text);
+      }, Math.max(1800, 78/(u.rate*14)*1000));
+      u._clearFb = function(){ if(fallbackTimer) clearInterval(fallbackTimer); fallbackTimer=null; };
+    };
+    u.onboundary = function(e){
+      if(u._mark) u._mark();
+      pulse = Math.min(0.62, pulse + 0.34);
+      var ci = (e && typeof e.charIndex==='number') ? e.charIndex : -1;
+      if(ci >= 0){
+        for(var s=0;s<subSegs.length;s++){
+          if(ci >= subSegs[s].start && ci < subSegs[s].end){
+            if(s !== curSeg){ curSeg = s; showSub(subSegs[s].text); }
+            break;
+          }
+        }
+      }
+    };
+    var done = function(){
+      if(watchdog){ clearTimeout(watchdog); watchdog = null; }
+      if(u._clearFb) u._clearFb();
+      speakingCount = Math.max(0, speakingCount-1);
+      if(speakingCount === 0){
+        if(ampTimer){ clearInterval(ampTimer); ampTimer=null; }
+        amp = 0; pulse = 0;
+        elState.textContent = awake ? 'Núcleo despierto' : 'Núcleo latente';
+        elState.classList.remove('live');
+        // sordina: evita que el micrófono se oiga a sí misma y se dispare sola
+        ignoreUntil = Date.now() + 800;
+        hideSub(1200);
+      }
+    };
+    u.onend = done;
+    u.onerror = function(e){ done(); if(e && e.error !== 'interrupted') log('Error de voz: '+(e.error||'desconocido')); };
+    synth.speak(u);
+  }
+
+  function greetingWord(){
+    var h = new Date().getHours();
+    if(h < 12) return 'Buenos días';
+    if(h < 19) return 'Buenas tardes';
+    return 'Buenas noches';
+  }
+
+  // El navegador exige un gesto tuyo antes de dejar hablar a nadie.
+  // Por eso el PRIMER clic en cualquier botón despierta el núcleo:
+  // ningún botón se queda muerto esperando a otro.
+  function wake(silent){
+    if(awake) return;
+    awake = true;
+    btnPower.textContent = '◈ Dormir núcleo';
+    elState.textContent  = 'Núcleo despierto';
+    elHint.textContent   = 'Núcleo despierto · voz habilitada';
+    log('Núcleo despierto.');
+    if(contMode && !running) startRec();
+    if(!silent){
+      speak(greetingWord()+', Sir. Aquí CIEL. El núcleo está despierto y todos los sistemas responden con normalidad.');
+    }
+  }
+  function sleep(){
+    awake = false;
+    synth && synth.cancel();
+    stopMic();
+    btnPower.textContent = '◈ Despertar núcleo';
+    elState.textContent  = 'Núcleo latente';
+    elHint.textContent   = 'Núcleo en reposo — cualquier botón lo despierta';
+    subsEl.classList.remove('on');
+    log('Núcleo en reposo.');
+  }
+
+  btnPower.addEventListener('click', function(){
+    if(awake) sleep(); else { wake(false); if(mcpReady) setTimeout(runInbox, 1400); }
+  });
+
+  btnGreet.addEventListener('click', function(){
+    wake(true);
+    var d = new Date().toLocaleDateString('es-CA',{weekday:'long',day:'numeric',month:'long'});
+    speak(greetingWord()+', Sir. Hoy es '+d+'. Enshrouded Construction operativa. Estoy a su disposición.');
+  });
+  btnStop.addEventListener('click', function(){
+    synth && synth.cancel(); stopMic();
+    subsEl.classList.remove('on'); log('Voz interrumpida.');
+  });
+  btnSay.addEventListener('click', function(){
+    wake(true);
+    var v = elSay.value;
+    if(!v.trim()){ log('No hay texto que leer.'); return; }
+    speak(v);
+  });
+
+  // El cuadro de texto también es un canal de órdenes: así el micrófono
+  // del teclado del teléfono sirve aunque el navegador nos niegue el suyo.
+  function runTyped(){
+    wake(true);
+    var v = (elSay.value || '').trim();
+    if(!v){ log('No escribiste ninguna orden.'); return; }
+    var t = norm(v), m = t.match(WAKE);
+    if(m){                                   // acepta "CIEL, lee mi bandeja"
+      var rest = t.slice(m.index + m[0].length).replace(/^[\s,]+/, '');
+      if(rest.length > 2) v = rest;
+    }
+    showSub(elSay.value.trim(), 'user');
+    elSay.value = '';
+    handleCommand(v);
+  }
+  document.getElementById('btnRun').addEventListener('click', runTyped);
+  elSay.addEventListener('keydown', function(e){
+    if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); runTyped(); }
+  });
+
+  /* ==================== BANDEJA EN VIVO (capacidad mcp → Gmail) ==================== */
+  var mcp = null, mcpReady = false;
+  var lastRows = null, lastCounts = null;
+  var zone = document.getElementById('mcpZone');
+  var inboxBody = document.getElementById('inboxBody');
+  var itemsEl = document.getElementById('items');
+
+  function notice(kind, title, body, withBtn){
+    zone.innerHTML='';
+    var d=document.createElement('div');
+    d.className='notice'+(kind?' '+kind:'');
+    var b=document.createElement('b'); b.textContent=title;
+    d.appendChild(b); d.appendChild(document.createTextNode(body));
+    zone.appendChild(d);
+    if(withBtn){
+      var row=document.createElement('div'); row.className='btnrow'; row.style.marginTop='12px';
+      var bt=document.createElement('button'); bt.textContent=withBtn.label; bt.className=withBtn.cls||'';
+      bt.addEventListener('click', withBtn.fn);
+      row.appendChild(bt); zone.appendChild(row);
+    }
+  }
+
+  var PLATFORMS = ['buildingconnected','bidsandtenders','biddingo','merx','dodge','constructconnect','procore'];
+  var NOISE = ['homestars','bark.com','cmail.bark','companycam','mailchimp','noreply','no-reply','newsletter',
+               'linkedin','indeed','facebook','intuit','quickbooks-notification','godaddy','shopify'];
+
+  function classify(m){
+    var from=(m.sender||'').toLowerCase();
+    var subj=(m.subject||'')+' '+(m.snippet||'');
+    var isPlatform = PLATFORMS.some(function(p){ return from.indexOf(p)>=0; });
+    var isNoise    = NOISE.some(function(p){ return from.indexOf(p)>=0; });
+    if(/final bid call|bids due|bid deadline|closing (today|tomorrow)|closes (today|tomorrow)|due today|deadline/i.test(subj)) return 'close';
+    if(/bid invite|invited you to bid|invitation to bid|itb\b/i.test(subj)) return 'invite';
+    if(/addend/i.test(subj)) return 'add';
+    if(isNoise) return 'noise';
+    if(isPlatform) return 'add';
+    return 'human';
+  }
+  var LABEL = { human:'Responder', close:'Cierre', invite:'Invitación', add:'Addendum', noise:'Ruido' };
+  var ORDER = { human:0, close:1, invite:2, add:3, noise:4 };
+  function senderName(s){
+    if(!s) return '';
+    var m = s.match(/^\s*"?([^"<]+?)"?\s*</);
+    return m ? m[1].trim() : s.replace(/[<>]/g,'').trim();
+  }
+
+  function render(payload){
+    var threads=(payload&&payload.threads)||[], rows=[];
+    threads.forEach(function(th){
+      var msgs=th.messages||[]; var m=msgs[msgs.length-1]||msgs[0];
+      if(!m) return;
+      rows.push({ k:classify(m), subject:m.subject||'(sin asunto)', from:senderName(m.sender), date:m.date });
+    });
+    rows.sort(function(a,b){ return (ORDER[a.k]-ORDER[b.k]) || (String(b.date).localeCompare(String(a.date))); });
+    var c={human:0,close:0,invite:0,add:0,noise:0};
+    rows.forEach(function(r){ c[r.k]++; });
+    document.getElementById('cHuman').textContent  = c.human;
+    document.getElementById('cClose').textContent  = c.close;
+    document.getElementById('cInvite').textContent = c.invite;
+    document.getElementById('cAdd').textContent    = c.add;
+    itemsEl.innerHTML='';
+    rows.forEach(function(r){
+      var li=document.createElement('li'); li.className='k-'+r.k;
+      var tag=document.createElement('div'); tag.className='tag'; tag.textContent=LABEL[r.k];
+      var txt=document.createElement('div'); txt.className='txt';
+      var b=document.createElement('b'); b.textContent=r.subject;
+      var sp=document.createElement('span'); sp.textContent=r.from;
+      txt.appendChild(b); txt.appendChild(sp);
+      li.appendChild(tag); li.appendChild(txt);
+      itemsEl.appendChild(li);
+    });
+    inboxBody.hidden=false;
+    lastRows = rows; lastCounts = c;
+    return c;
+  }
+
+  function spokenSummary(c,total){
+    var p=[];
+    p.push(greetingWord()+', Sir. He revisado su bandeja.');
+    p.push('Han entrado '+total+(total===1?' mensaje.':' mensajes.'));
+    if(c.human)  p.push(c.human===1?'Uno es de una persona y espera su respuesta directa.':c.human+' son de personas y esperan su respuesta directa.');
+    if(c.close)  p.push(c.close===1?'Hay un aviso de cierre de licitación.':'Hay '+c.close+' avisos de cierre de licitación.');
+    if(c.invite) p.push(c.invite===1?'Ha recibido una invitación nueva a licitar.':'Ha recibido '+c.invite+' invitaciones nuevas a licitar.');
+    if(c.add)    p.push(c.add===1?'Y un addendum o actualización de proyecto.':'Y '+c.add+' addenda o actualizaciones de proyecto.');
+    if(!c.human && !c.close && !c.invite) p.push('Nada requiere su atención inmediata.');
+    else if(c.human || c.close) p.push('Le recomiendo atender primero lo que cierra hoy.');
+    return p.join(' ');
+  }
+
+  function windowQuery(){
+    return new Date().getDay()===1 ? 'in:inbox newer_than:3d' : 'in:inbox newer_than:1d';
+  }
+
+  var busy=false, retried=false;
+
+  function mcpFail(err){
+    var code=(err&&err.code)||'upstream_error';
+    switch(code){
+      case 'needs_reauth':
+        notice('err','Sesión de Gmail caducada','Vuelve a conectar Gmail en claude.ai → Ajustes → Conectores y recarga esta página.'); break;
+      case 'server_not_connected':
+        notice('err','Gmail no está conectado','Añade el conector de Gmail en claude.ai → Ajustes → Conectores para ver tu bandeja aquí.'); break;
+      case 'selection_required':
+        notice('','Elige una cuenta','Tienes más de una cuenta de Gmail conectada. Elige cuál usar en el aviso de claude.ai y vuelve a intentarlo.',
+          {label:'Reintentar', fn:runInbox}); break;
+      case 'blocked_by_policy':
+        notice('err','Bloqueado por política','La política de tu organización no permite leer Gmail desde una página publicada.'); break;
+      case 'approval_required':
+        notice('','Necesita aprobación','Esta lectura requiere aprobación por llamada, algo que las páginas publicadas todavía no admiten.'); break;
+      case 'server_unavailable':
+      case 'rate_limited':
+        if(!retried){
+          retried=true;
+          var wait=(err&&err.retryAfterMs)||(1200+Math.random()*1800);
+          notice('','Gmail no responde','Reintentando en unos segundos…');
+          setTimeout(runInbox, Math.min(wait,60000));
+        } else {
+          notice('err','Gmail sigue sin responder','El servicio está caído o muy lento en este momento.',
+            {label:'Reintentar', fn:function(){ retried=false; runInbox(); }});
+        }
+        break;
+      case 'tool_error':
+        notice('err','Gmail rechazó la consulta',(err&&err.message)?err.message:'La búsqueda no se pudo completar.',
+          {label:'Reintentar', fn:runInbox}); break;
+      case 'not_granted':
+      case 'capability_disabled':
+      case 'capability_removed':
+        noMcp(); break;
+      default:
+        notice('err','No se pudo leer la bandeja',(err&&err.message)?err.message:'Error desconocido.',
+          {label:'Reintentar', fn:runInbox});
+    }
+    log('Bandeja — fallo ['+code+']');
+  }
+
+  function runInbox(){
+    if(!mcp || busy) return;
+    busy=true;
+    notice('','Consultando','Leyendo tu bandeja de entrada…');
+    mcp.callTool('Gmail','search_threads',{ query:windowQuery(), pageSize:50 }, { cache:{ staleTime:60000 } })
+      .then(function(res){
+        busy=false; retried=false;
+        var payload = res && res.payload;
+        if(!payload || !payload.threads){
+          notice('ok','Bandeja limpia','No hay mensajes nuevos en la ventana consultada.');
+          inboxBody.hidden = true;
+          if(awake) speak('Sir, no hay mensajes nuevos. Su bandeja está limpia.');
+          return;
+        }
+        var c = render(payload);
+        var total = payload.threads.length;
+        var when = (res.cache && res.cache.storedAt)
+          ? new Date(res.cache.storedAt).toLocaleTimeString('es-CA',{hour12:false})
+          : new Date().toLocaleTimeString('es-CA',{hour12:false});
+        notice('ok','Bandeja leída', total+' conversaciones · actualizado '+when,
+          {label:'Actualizar', fn:function(){ mcp.invalidate('Gmail','search_threads').catch(function(){}).then(runInbox); }});
+        log('Bandeja: '+total+' conversaciones · '+c.human+' por responder · '+c.close+' cierres');
+        if(awake) speak(spokenSummary(c,total));
+      })
+      .catch(function(err){ busy=false; mcpFail(err); });
+  }
+
+  function noMcp(){
+    notice('','Bandeja no disponible aquí',
+      'Esta vista no puede alcanzar tus conectores. Abre la página desde tu galería de artefactos en claude.ai — ahí CIEL sí puede leer tu Gmail. Mientras tanto, el núcleo y la voz funcionan igual: pega el briefing en el dictado.');
+  }
+
+  if(window.claude && typeof window.claude.use === 'function'){
+    window.claude.use('mcp').then(function(ns){
+      if(!ns){ noMcp(); log('Conectores no disponibles en esta vista.'); return; }
+      mcp = ns; mcpReady = true;
+      log('Vínculo con conectores establecido.');
+      notice('','Gmail enlazado','Listo para leer tu bandeja de entrada.',
+        {label:'▸ Leer bandeja', cls:'primary', fn:runInbox});
+    }).catch(function(){ noMcp(); });
+  } else {
+    noMcp();
+  }
+
+  /* ================================================================
+     EL OÍDO — micrófono y comandos por voz
+     CIEL no improvisa: entiende una lista de órdenes y lo dice
+     cuando no entiende. Nunca finge haber comprendido.
+     ================================================================ */
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var rec = null, micZone = document.getElementById('micZone');
+  var btnMic = document.getElementById('btnMic');
+  var chkCont = document.getElementById('contMic');
+
+  // earState: 0 apagado · 1 escuchando la palabra clave · 2 armada, esperando la orden
+  var earState = 0, micOn = false;
+  var running = false, manualStop = false, contMode = false;
+  var mode = 'idle', armTimer = null, ignoreUntil = 0;
+  var errCount = 0, errWindow = 0, restartTimer = null;
+
+  var CONT_KEY = 'ciel.mic.cont.v1';
+  try { contMode = localStorage.getItem(CONT_KEY) === '1'; } catch(e){}
+
+  // "CIEL" es corta y el reconocedor la escribe de varias formas.
+  // Este patrón acepta ciel, cielo, siel, sielo, cyel, ciela… y nada más.
+  var WAKE = /\b[cs][iy]e+l[oa]?\b/;
+
+  // ¿estamos dentro de un marco? entonces el permiso del micrófono puede no llegar
+  var framed = (function(){ try { return window.top !== window.self; } catch(e){ return true; } })();
+
+  // El reconocimiento de voz de Chrome se apoya en un servicio en la nube y
+  // no acepta páginas abiertas como archivo suelto (file://). El micrófono sí,
+  // el reconocimiento no. De ahí que pida permiso y luego no oiga nada.
+  var isFile = (location.protocol === 'file:');
+
+  function micNote(kind, title, body){
+    micZone.innerHTML = '';
+    if(!title) return;
+    var d = document.createElement('div');
+    d.className = 'notice' + (kind ? ' ' + kind : '');
+    var b = document.createElement('b'); b.textContent = title;
+    d.appendChild(b); d.appendChild(document.createTextNode(body));
+    micZone.appendChild(d);
+  }
+
+  // quita acentos y signos para comparar sin sorpresas
+  function norm(s){
+    return (s||'').toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[¿?¡!.,;:]/g,' ')
+      .replace(/\s+/g,' ').trim();
+  }
+  function has(t, words){
+    for(var i=0;i<words.length;i++){ if(t.indexOf(words[i]) >= 0) return true; }
+    return false;
+  }
+
+  var HELP = 'Puede pedirme: lea mi bandeja. Qué cierra hoy. Quién espera respuesta. ' +
+             'Hay invitaciones nuevas. Qué hora es. Repite. O silencio, para que me calle.';
+
+  function needInbox(){
+    if(lastRows) return false;
+    speak('Todavía no he leído su bandeja, Sir. Dígame: lea mi bandeja.');
+    return true;
+  }
+  function listOf(kind, singular, plural, vacio){
+    if(needInbox()) return;
+    var rows = lastRows.filter(function(r){ return r.k === kind; });
+    if(!rows.length){ speak(vacio); return; }
+    var head = rows.length === 1 ? singular : rows.length + plural;
+    var items = rows.slice(0,6).map(function(r){ return r.subject; }).join('. ');
+    var extra = rows.length > 6 ? ' Y ' + (rows.length-6) + ' más en pantalla.' : '';
+    speak(head + ' ' + items + '.' + extra);
+  }
+
+  function handleCommand(text){
+    var t = norm(text);
+    if(!t){ return; }
+    log('Sir: ' + text);
+
+    if(has(t, ['silencio','callate','calla','detente','para ya','basta'])){
+      synth && synth.cancel(); subsEl.classList.remove('on'); log('Voz interrumpida por voz.'); return;
+    }
+    if(has(t, ['ayuda','que puedes','que sabes','comandos','opciones'])){ speak(HELP); return; }
+    if(has(t, ['repite','repetir','otra vez','de nuevo'])){
+      if(lastSpoken) speak(lastSpoken, {quietLog:true});
+      else speak('Todavía no he dicho nada, Sir.');
+      return;
+    }
+    if(has(t, ['hora','fecha','que dia'])){
+      var n = new Date();
+      speak('Son las ' + n.toLocaleTimeString('es-CA',{hour:'2-digit',minute:'2-digit',hour12:false}) +
+            ', del ' + n.toLocaleDateString('es-CA',{weekday:'long',day:'numeric',month:'long'}) + ', Sir.');
+      return;
+    }
+    if(has(t, ['saluda','hola','buenos dias','buenas tardes','buenas noches'])){
+      var d = new Date().toLocaleDateString('es-CA',{weekday:'long',day:'numeric',month:'long'});
+      speak(greetingWord() + ', Sir. Hoy es ' + d + '. Estoy a su disposición.');
+      return;
+    }
+    if(has(t, ['cierra','cierre','cierran','vence','deadline','plazo'])){
+      listOf('close','Cierra hoy:','avisos de cierre:','No veo ningún aviso de cierre, Sir.');
+      return;
+    }
+    if(has(t, ['espera respuesta','quien espera','responder','contestar','quien me escribio'])){
+      listOf('human','Una persona espera su respuesta:','personas esperan su respuesta:',
+             'Nadie espera respuesta directa, Sir. Todo lo demás es de plataforma.');
+      return;
+    }
+    if(has(t, ['invitacion','invitaciones','licitar','nuevas','nuevos proyectos'])){
+      listOf('invite','Una invitación nueva:','invitaciones nuevas:','No han entrado invitaciones nuevas, Sir.');
+      return;
+    }
+    if(has(t, ['bandeja','correo','correos','email','inbox','mensajes','revisa'])){
+      if(!mcpReady){
+        speak('No puedo alcanzar su Gmail desde esta vista, Sir. Abra la página desde su galería de artefactos en claude punto ai.');
+        return;
+      }
+      speak('Enseguida, Sir. Reviso su bandeja.');
+      setTimeout(runInbox, 1400);
+      return;
+    }
+    // No entendió. Lo dice — no inventa.
+    speak('No entendí eso, Sir. ' + HELP);
+  }
+
+  /* --- diagnóstico a la vista: qué funciona y qué no --- */
+  var dPerm = document.getElementById('dPerm');
+  var dRec  = document.getElementById('dRec');
+  var dVoices = document.getElementById('dVoices');
+  var dHeard  = document.getElementById('dHeard');
+
+  function setDiag(el, txt, cls){
+    if(!el) return;
+    el.textContent = txt;
+    el.className = cls || '';
+  }
+  function refreshDiag(){
+    setDiag(dRec, !SR ? 'no existe en este navegador'
+                 : running ? (mode === 'armed' ? 'armada, esperando orden' : 'escuchando')
+                 : 'detenido',
+            !SR ? 'bad' : running ? 'ok' : 'warn');
+    var n = (window.speechSynthesis && speechSynthesis.getVoices() || []).length;
+    var es = (window.speechSynthesis && speechSynthesis.getVoices() || [])
+              .filter(function(v){ return (v.lang||'').toLowerCase().indexOf('es') === 0; }).length;
+    setDiag(dVoices, n ? (n + ' · ' + es + ' en español') : 'ninguna',
+            n === 0 ? 'bad' : es === 0 ? 'warn' : 'ok');
+  }
+  if(navigator.permissions && navigator.permissions.query){
+    navigator.permissions.query({name:'microphone'}).then(function(st){
+      var map = {granted:['concedido','ok'], denied:['DENEGADO','bad'], prompt:['aún sin conceder','warn']};
+      var v = map[st.state] || [st.state,'warn'];
+      setDiag(dPerm, v[0], v[1]);
+      st.onchange = function(){
+        var w = map[st.state] || [st.state,'warn'];
+        setDiag(dPerm, w[0], w[1]);
+        log('Permiso del micrófono: ' + st.state);
+      };
+    }).catch(function(){ setDiag(dPerm, 'no se puede consultar aquí', 'warn'); });
+  } else {
+    setDiag(dPerm, 'no se puede consultar', 'warn');
+  }
+  setInterval(refreshDiag, 1200);
+  refreshDiag();
+
+  /* --- pedir el permiso de verdad, no solo esperar a que aparezca --- */
+  document.getElementById('btnPerm').addEventListener('click', function(){
+    wake(true);
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      micNote('err','No puedo ni pedirlo',
+        'Este navegador no expone el micrófono a las páginas. Ocurre en conexiones inseguras y en navegadores antiguos. ' +
+        'Usa el micrófono del teclado sobre la barra de órdenes.');
+      setDiag(dPerm, 'no disponible', 'bad');
+      return;
+    }
+    micNote('', 'Pidiendo permiso', 'Si aparece un aviso del navegador, dile que sí.');
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream){
+      // No necesitamos el audio: solo queríamos la llave. Soltamos el micrófono.
+      stream.getTracks().forEach(function(tr){ tr.stop(); });
+      setDiag(dPerm, 'concedido', 'ok');
+      log('Permiso del micrófono concedido.');
+      micNote('ok','Permiso concedido','Enciendo la escucha continua. Di «CIEL» cuando me necesites.');
+      if(!chkCont.checked){
+        chkCont.checked = true;
+        chkCont.dispatchEvent(new Event('change'));
+      } else if(!running){
+        startRec();
+      }
+      speak('Permiso concedido, Sir. Ya puedo oírle.');
+    }).catch(function(err){
+      var name = (err && err.name) || 'Error';
+      var msg  = (err && err.message) || '';
+      var policy = /permission|policy|disallow|denied by/i.test(msg) && framed;
+      setDiag(dPerm, 'DENEGADO', 'bad');
+      log('Permiso del micrófono — ' + name + ': ' + msg);
+
+      if(name === 'NotFoundError' || name === 'DevicesNotFoundError'){
+        micNote('err','Sin micrófono','No hay ningún micrófono conectado a este equipo.');
+      } else if(name === 'NotReadableError'){
+        micNote('err','Micrófono ocupado','Otra aplicación lo está usando. Ciérrala y vuelve a intentarlo.');
+      } else if(policy || (framed && name === 'NotAllowedError')){
+        micNote('err','El marco lo bloquea',
+          'No es tu micrófono ni tu decisión: la página está dentro de claude.ai y el permiso no se delega hasta aquí. ' +
+          'Ábrela en su propia pestaña y vuelve a apretar este botón — ahí sí te preguntará. ' +
+          'Mientras tanto, la barra de órdenes con el micrófono del teclado funciona igual de bien. ' +
+          '(' + name + ': ' + msg + ')');
+      } else if(name === 'NotAllowedError'){
+        micNote('err','Lo denegaste antes',
+          'El navegador tiene guardado un "no" para esta página. Toca el candado en la barra de direcciones, ' +
+          'cambia el micrófono a "Permitir" y recarga.');
+      } else {
+        micNote('err','No se pudo pedir el permiso', name + ': ' + msg);
+      }
+    });
+  });
+
+  document.getElementById('btnTestVoice').addEventListener('click', function(){
+    wake(true);
+    refreshDiag();
+    speak('Prueba de voz. Si oye esto, Sir, mi voz funciona correctamente.');
+  });
+
+  function setEar(s){
+    earState = s;
+    micOn = s > 0;
+    btnMic.classList.toggle('on', s === 2);
+    btnMic.textContent = s === 2 ? '● Te escucho…'
+                       : s === 1 ? '👂 Esperando «CIEL»'
+                       : '🎙 Hablar con CIEL';
+  }
+
+  function disarm(){
+    if(armTimer){ clearTimeout(armTimer); armTimer = null; }
+    mode = 'idle';
+    if(running && contMode){
+      setEar(1);
+      micNote('', 'Esperando «CIEL»', 'El micrófono sigue abierto. Di «CIEL» cuando me necesites.');
+    } else if(!running){
+      setEar(0);
+    }
+  }
+
+  function arm(ack){
+    mode = 'armed';
+    setEar(2);
+    micNote('ok', 'Dime, Sir', 'Te escucho. Di la orden.');
+    if(ack) speak('¿Sí, Sir?', {quietLog:true});
+    if(armTimer) clearTimeout(armTimer);
+    armTimer = setTimeout(function(){
+      if(mode === 'armed'){ disarm(); log('Se agotó la espera de la orden.'); }
+    }, 10000);
+  }
+
+  function stopMic(){
+    manualStop = true;
+    if(restartTimer){ clearTimeout(restartTimer); restartTimer = null; }
+    if(armTimer){ clearTimeout(armTimer); armTimer = null; }
+    running = false; mode = 'idle';
+    setEar(0);
+    try { if(rec) rec.abort(); } catch(e){}
+  }
+
+  function buildRec(){
+    var r = new SR();
+    r.lang = 'es-MX';
+    r.continuous = contMode;
+    r.interimResults = true;
+    r.maxAlternatives = 1;
+
+    r.onstart = function(){
+      running = true; errCount = 0;
+      setEar(mode === 'armed' ? 2 : (contMode ? 1 : 2));
+    };
+
+    r.onresult = function(e){
+      // sordina mientras CIEL habla, para que no se dispare con su propia voz
+      if(speakingCount > 0 || Date.now() < ignoreUntil) return;
+
+      var interim = '', finals = [];
+      for(var i = e.resultIndex; i < e.results.length; i++){
+        var res = e.results[i];
+        if(res.isFinal) finals.push(res[0].transcript);
+        else interim += res[0].transcript;
+      }
+
+      // Todo lo que oye se ve, aunque no sea una orden. Nada silencioso.
+      var live = (finals.join(' ') + ' ' + interim).trim();
+      if(live) setDiag(dHeard, live.length > 58 ? live.slice(0,58)+'…' : live, 'ok');
+
+      // ¿es solo mi nombre, sin orden detrás?
+      function soloNombre(txt){
+        var mm = txt.match(WAKE);
+        return !!mm && txt.replace(WAKE,'').replace(/[\s,]/g,'').length === 0;
+      }
+
+      if(mode === 'armed'){
+        if(live) showSub(live, 'user');
+      } else if(interim){
+        // No esperamos a que Chrome cierre la frase: armamos con lo provisional.
+        var ti = norm(interim), mi = ti.match(WAKE);
+        if(mi){
+          showSub(interim.trim(), 'user');
+          var restI = ti.slice(mi.index + mi[0].length).replace(/^[\s,]+/, '');
+          if(restI.length > 3){
+            log('Oí: «' + interim.trim() + '»');
+            micNote('ok','Te oí','«' + interim.trim() + '»');
+            mode = 'idle';
+            handleCommand(restI);
+          } else {
+            arm(true);
+          }
+          return;
+        }
+      }
+
+      for(var f = 0; f < finals.length; f++){
+        var raw = finals[f].trim();
+        if(!raw) continue;
+        log('Oí: «' + raw + '»');
+        var t = norm(raw);
+
+        if(mode === 'armed'){
+          if(soloNombre(t)) continue;      // ya me armó; no lo tomo como orden
+          micNote('ok', 'Te oí', '«' + raw + '»');
+          disarm();
+          handleCommand(raw);
+          return;
+        }
+
+        var m = t.match(WAKE);
+        if(m){
+          var rest = t.slice(m.index + m[0].length).replace(/^[\s,]+/, '');
+          if(rest.length > 3){
+            micNote('ok', 'Te oí', '«' + raw + '»');
+            showSub(raw, 'user');
+            handleCommand(rest);
+          } else {
+            arm(true);
+          }
+          return;
+        }
+      }
+    };
+
+    r.onerror = function(e){
+      var code = (e && e.error) || 'desconocido';
+      if(code === 'aborted' || code === 'no-speech') return;   // normales en escucha continua
+
+      var now = Date.now();
+      if(now - errWindow > 30000){ errCount = 0; errWindow = now; }
+      errCount++;
+
+      switch(code){
+        case 'not-allowed':
+        case 'service-not-allowed':
+          stopMic(); contMode = false; chkCont.checked = false;
+          micNote('err','Micrófono bloqueado', framed
+            ? 'Esta página está dentro de un marco de claude.ai, y el permiso del micrófono no cruza hasta aquí. ' +
+              'Ábrela en su propia pestaña (el botón de expandir o abrir en pestaña nueva del visor) y vuelve a intentarlo. ' +
+              'Si prefieres no moverte: usa el micrófono del teclado de tu teléfono sobre el cuadro de órdenes de arriba y aprieta Ejecutar — funciona igual.'
+            : 'El navegador no dio permiso. Toca el candado en la barra de direcciones, permite el micrófono para esta página y recarga.');
+          setDiag(dPerm, 'DENEGADO', 'bad');
+          break;
+        case 'audio-capture':
+          stopMic(); contMode = false; chkCont.checked = false;
+          micNote('err','Sin micrófono','No encuentro ningún micrófono en este equipo.');
+          break;
+        case 'network':
+          if(isFile){
+            stopMic(); contMode = false; chkCont.checked = false;
+            micNote('err','Es el archivo suelto, no tu micrófono',
+              'Diste el permiso y el micrófono funciona — pero el reconocimiento de voz de Chrome se apoya en un servicio en la nube ' +
+              'y no atiende a páginas abiertas como archivo (file://). Por eso pide permiso y luego no oye nada. ' +
+              'Necesita una dirección web de verdad. Usa la barra de órdenes de arriba con el micrófono de tu teclado.');
+          } else {
+            micNote('err','Sin conexión','El reconocimiento de voz necesita internet. Reintentando…');
+          }
+          break;
+        default:
+          micNote('err','Falló el micrófono','Código: ' + code);
+      }
+      log('Micrófono — fallo ['+code+']');
+
+      if(errCount >= 5){
+        stopMic(); contMode = false; chkCont.checked = false;
+        micNote('err','Escucha detenida','Falló cinco veces seguidas. La apagué para no dejarla reintentando sin parar.');
+      }
+    };
+
+    r.onend = function(){
+      running = false;
+      if(manualStop || !contMode){ setEar(0); return; }
+      // Chrome corta la escucha sola tras unos segundos de silencio: la revivimos.
+      restartTimer = setTimeout(startRec, 300);
+    };
+
+    return r;
+  }
+
+  function startRec(){
+    if(!SR){
+      micNote('err','Este navegador no oye',
+        'El reconocimiento de voz solo funciona en Chrome y Edge. En Safari y Firefox no existe. ' +
+        'Usa el micrófono del teclado de tu teléfono sobre el cuadro de dictado de arriba.');
+      return;
+    }
+    if(running) return;
+    manualStop = false;
+    rec = buildRec();
+    try { rec.start(); }
+    catch(err){
+      running = false;
+      micNote('err','No pude abrir el micrófono', String(err && err.message || err));
+    }
+  }
+
+  chkCont.checked = contMode;
+  chkCont.addEventListener('change', function(){
+    contMode = chkCont.checked;
+    try { localStorage.setItem(CONT_KEY, contMode ? '1' : '0'); } catch(e){}
+    if(contMode){
+      wake(true);
+      mode = 'idle';
+      startRec();
+      micNote('', 'Escucha continua encendida', 'Di «CIEL» y entro en acción. El micrófono queda abierto.');
+      log('Escucha continua encendida.');
+    } else {
+      stopMic();
+      micNote('', 'Escucha continua apagada', 'Aprieta «Hablar con CIEL» cuando quieras darme una orden.');
+      log('Escucha continua apagada.');
+    }
+  });
+
+  btnMic.addEventListener('click', function(){
+    wake(true);
+    if(mode === 'armed'){ disarm(); return; }
+    if(running){ arm(false); return; }   // ya está abierta: solo la armamos
+    mode = 'armed';
+    startRec();
+  });
+
+  if(!SR){
+    chkCont.disabled = true;
+    micNote('', 'Este navegador no oye',
+      'El reconocimiento de voz solo existe en Chrome y Edge. Usa el micrófono del teclado de tu teléfono sobre el cuadro de dictado de arriba.');
+  } else if(isFile){
+    micNote('', 'Archivo suelto: el oído no funcionará aquí',
+      'Chrome te dará el permiso del micrófono, pero su reconocimiento de voz se apoya en un servicio en la nube que no atiende ' +
+      'a páginas abiertas como archivo (file://). La voz, el círculo y la barra de órdenes sí funcionan: dicta con el micrófono ' +
+      'de tu teclado sobre la barra de arriba.');
+  } else if(framed){
+    // Decirlo de entrada, para que no pierda el tiempo peleando con el marco.
+    micNote('', 'Aquí dentro el micrófono suele estar bloqueado',
+      'Esta página vive dentro de claude.ai y el navegador no delega el micrófono a páginas incrustadas. ' +
+      'Puedes intentarlo con el botón de abajo, o abrirla en su propia pestaña. ' +
+      'La barra de órdenes de arriba funciona siempre: dicta con el micrófono de tu teclado y aprieta Ejecutar.');
+  } else if(contMode){
+    micNote('', 'Escucha continua lista', 'Aprieta cualquier botón una vez y quedo escuchando. Después basta con decir «CIEL».');
+  } else {
+    micNote('', 'Listo para escuchar', 'Aprieta «Hablar con CIEL», o enciende la escucha continua para no tener que apretar nada.');
+  }
+
+  log('Núcleo CIEL cargado. Latente, a la espera.');
+})();
+</script>
+
+<script>
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('sw.js').catch(function(){});
+    });
+  }
+</script>
+</body>
+</html>
