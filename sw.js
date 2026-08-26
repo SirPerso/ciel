@@ -1,5 +1,5 @@
 // CIEL — funciona sin conexión una vez instalada.
-const CACHE = 'ciel-v1';
+const CACHE = 'ciel-v3';
 const FILES = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {

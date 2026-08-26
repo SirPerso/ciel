@@ -1077,9 +1077,9 @@
     wake(true);
     var v = (elSay.value || '').trim();
     if(!v){ log('No escribiste ninguna orden.'); return; }
-    var t = norm(v), m = t.match(WAKE);
+    var t = norm(v), m = wakeMatch(t);
     if(m){                                   // acepta "CIEL, lee mi bandeja"
-      var rest = t.slice(m.index + m[0].length).replace(/^[\s,]+/, '');
+      var rest = t.slice(m.index + m.len).replace(/^[\s,]+/, '');
       if(rest.length > 2) v = rest;
     }
     showSub(elSay.value.trim(), 'user');
@@ -1282,7 +1282,8 @@
 
   // earState: 0 apagado · 1 escuchando la palabra clave · 2 armada, esperando la orden
   var earState = 0, micOn = false;
-  var running = false, manualStop = false, contMode = false;
+  var running = false, starting = false, manualStop = false, contMode = false;
+  var reviveTimer = null, revives = 0, startingSince = 0;
   var mode = 'idle', armTimer = null, ignoreUntil = 0;
   var errCount = 0, errWindow = 0, restartTimer = null;
 
@@ -1292,6 +1293,17 @@
   // "CIEL" es corta y el reconocedor la escribe de varias formas.
   // Este patrón acepta ciel, cielo, siel, sielo, cyel, ciela… y nada más.
   var WAKE = /\b[cs][iy]e+l[oa]?\b/;
+  // Chrome suele transcribir "CIEL" como DOS palabras: "si el", "sí el", "ci el".
+  // Esa forma solo la aceptamos al PRINCIPIO de la frase, para no dispararnos
+  // cada vez que Sir diga "si el cliente..." en mitad de una conversación.
+  var WAKE2 = /^\s*(?:s[ií]|ci|cy|sy|se)\s+el\b/;
+  function wakeMatch(t){
+    var m = t.match(WAKE);
+    if(m) return { index: m.index, len: m[0].length };
+    var m2 = t.match(WAKE2);
+    if(m2) return { index: m2.index, len: m2[0].length };
+    return null;
+  }
 
   // ¿estamos dentro de un marco? entonces el permiso del micrófono puede no llegar
   var framed = (function(){ try { return window.top !== window.self; } catch(e){ return true; } })();
@@ -1405,8 +1417,9 @@
   }
   function refreshDiag(){
     setDiag(dRec, !SR ? 'no existe en este navegador'
-                 : running ? (mode === 'armed' ? 'armada, esperando orden' : 'escuchando')
-                 : 'detenido',
+                 : running ? (mode === 'armed' ? 'armada, esperando orden' : 'escuchando' + (revives?' · revivida '+revives+'×':''))
+                 : starting ? 'arrancando…'
+                 : contMode ? 'caída — reviviendo' : 'detenido',
             !SR ? 'bad' : running ? 'ok' : 'warn');
     var n = (window.speechSynthesis && speechSynthesis.getVoices() || []).length;
     var es = (window.speechSynthesis && speechSynthesis.getVoices() || [])
@@ -1536,7 +1549,7 @@
     r.maxAlternatives = 1;
 
     r.onstart = function(){
-      running = true; errCount = 0;
+      running = true; starting = false; errCount = 0;
       setEar(mode === 'armed' ? 2 : (contMode ? 1 : 2));
     };
 
@@ -1557,18 +1570,20 @@
 
       // ¿es solo mi nombre, sin orden detrás?
       function soloNombre(txt){
-        var mm = txt.match(WAKE);
-        return !!mm && txt.replace(WAKE,'').replace(/[\s,]/g,'').length === 0;
+        var mm = wakeMatch(txt);
+        if(!mm) return false;
+        var resto = txt.slice(0, mm.index) + txt.slice(mm.index + mm.len);
+        return resto.replace(/[\s,]/g,'').length === 0;
       }
 
       if(mode === 'armed'){
         if(live) showSub(live, 'user');
       } else if(interim){
         // No esperamos a que Chrome cierre la frase: armamos con lo provisional.
-        var ti = norm(interim), mi = ti.match(WAKE);
+        var ti = norm(interim), mi = wakeMatch(ti);
         if(mi){
           showSub(interim.trim(), 'user');
-          var restI = ti.slice(mi.index + mi[0].length).replace(/^[\s,]+/, '');
+          var restI = ti.slice(mi.index + mi.len).replace(/^[\s,]+/, '');
           if(restI.length > 3){
             log('Oí: «' + interim.trim() + '»');
             micNote('ok','Te oí','«' + interim.trim() + '»');
@@ -1595,9 +1610,9 @@
           return;
         }
 
-        var m = t.match(WAKE);
+        var m = wakeMatch(t);
         if(m){
-          var rest = t.slice(m.index + m[0].length).replace(/^[\s,]+/, '');
+          var rest = t.slice(m.index + m.len).replace(/^[\s,]+/, '');
           if(rest.length > 3){
             micNote('ok', 'Te oí', '«' + raw + '»');
             showSub(raw, 'user');
@@ -1656,10 +1671,10 @@
     };
 
     r.onend = function(){
-      running = false;
+      running = false; starting = false;
       if(manualStop || !contMode){ setEar(0); return; }
       // Chrome corta la escucha sola tras unos segundos de silencio: la revivimos.
-      restartTimer = setTimeout(startRec, 300);
+      restartTimer = setTimeout(startRec, 600);
     };
 
     return r;
@@ -1672,15 +1687,36 @@
         'Usa el micrófono del teclado de tu teléfono sobre el cuadro de dictado de arriba.');
       return;
     }
-    if(running) return;
+    if(running || starting) return;
     manualStop = false;
+    starting = true; startingSince = Date.now();
     rec = buildRec();
     try { rec.start(); }
     catch(err){
-      running = false;
-      micNote('err','No pude abrir el micrófono', String(err && err.message || err));
+      // Chrome rechaza un arranque demasiado seguido. No es fatal: el latido reintenta.
+      starting = false; running = false;
+      log('Reinicio rechazado por el navegador — reintento en un momento.');
     }
   }
+
+  // Latido: si la escucha continua está encendida pero el reconocimiento
+  // está muerto, lo revive. Esto es lo que evita que "funcione y luego no".
+  function heartbeat(){
+    if(!contMode || manualStop || !SR) return;
+    // Un arranque que se queda colgado también cuenta como caída.
+    if(starting && Date.now() - startingSince > 4000){
+      starting = false;
+      try { if(rec) rec.abort(); } catch(e){}
+      log('El arranque se quedó colgado — lo suelto y reintento.');
+    }
+    if(!running && !starting){
+      revives++;
+      log('Latido: la escucha estaba caída, la reinicio (' + revives + ').');
+      startRec();
+    }
+  }
+  if(reviveTimer) clearInterval(reviveTimer);
+  reviveTimer = setInterval(heartbeat, 2500);
 
   chkCont.checked = contMode;
   chkCont.addEventListener('change', function(){
